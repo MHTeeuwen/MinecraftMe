@@ -41,7 +41,16 @@
     ]
   },
   "resolutions": {
-    "nth-check": "2.0.1",
-    "postcss": "8.4.31"
+    "nth-check": "^2.1.1",
+    "postcss": "^8.5.3",
+    "**/nth-check": "^2.1.1",
+    "**/postcss": "^8.5.3",
+    "svgo/css-select/nth-check": "^2.1.1",
+    "@svgr/plugin-svgo/svgo/css-select/nth-check": "^2.1.1",
+    "resolve-url-loader/postcss": "^8.5.3"
+  },
+  "devDependencies": {
+    "nth-check": "^2.1.1",
+    "postcss": "^8.5.3"
   }
 }
