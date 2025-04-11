@@ -9,15 +9,15 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
 const plans = {
   starter: {
     quantity: 10,
-    price: 499, // $4.99
+    price: 500, // $5.00 (rounded from $4.99 to match display)
   },
   value: {
-    quantity: 15,
-    price: 999, // $9.99
+    quantity: 30,
+    price: 1000, // $10.00
   },
   family: {
     quantity: 50,
-    price: 2499, // $24.99
+    price: 1500, // $15.00
   },
 };
 
