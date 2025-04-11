@@ -8,7 +8,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
 // Define payment plans with test and live mode pricing
 const plans = {
   starter: {
-    quantity: 5,
+    quantity: 10,
     price: 499, // $4.99
   },
   value: {
