@@ -45,15 +45,6 @@ const limiter = rateLimit({
     res.status(429).json({
       error: 'Too many requests from this IP, please try again after 15 minutes'
     });
-  },
-  onLimitReached: (req, res, options) => {
-    logger.info('Rate limit reached for IP', {
-      ip: req.ip,
-      method: req.method,
-      path: req.path,
-      headers: req.headers,
-      rateLimit: options
-    });
   }
 });
 
@@ -66,6 +57,20 @@ app.use(requestLogger);
 // Routes
 app.use('/api/convert', convertRouter);
 app.use('/api/stripe', stripeRouter);
+
+// Root route handler
+app.get('/', (req, res) => {
+  res.json({
+    message: 'MinecraftMe API Server',
+    version: '1.0.0',
+    endpoints: [
+      '/api/convert',
+      '/api/stripe/create-checkout-session',
+      '/api/stripe/session/:sessionId',
+      '/api/test'
+    ]
+  });
+});
 
 // Simple test route
 app.get('/api/test', (req, res) => {
