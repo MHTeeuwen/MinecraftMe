@@ -236,7 +236,7 @@ function AppContent() {
           <>
             {/* Hero Section */}
             <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-              <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF', lineHeight: '1.4' }}>
+              <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF', lineHeight: '1.4', cursor: 'pointer' }} onClick={() => navigate('/')}>
                 Turn Your Photos Into Minecraft Art!
               </h1>
               <p style={{ fontSize: '20px', marginBottom: '10px', color: '#FFFFFF', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
@@ -355,24 +355,24 @@ function AppContent() {
                 </div>
               ) : (
                 <>
-                  <ImageUpload onImageSelect={handleImageSelect} />
-                  {isConverting && (
+            <ImageUpload onImageSelect={handleImageSelect} />
+            {isConverting && (
                     <div style={{ marginTop: '20px', padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
-                      <div className="minecraft-text breaking">Converting your photo...</div>
-                    </div>
-                  )}
+                <div className="minecraft-text breaking">Converting your photo...</div>
+              </div>
+            )}
                   <ErrorMessage 
                     message={error} 
                     onClose={() => setError('')} 
                   />
-                </>
-              )}
-            </div>
+          </>
+        )}
+      </div>
 
-            {/* Only show examples if no image is being processed */}
+      {/* Only show examples if no image is being processed */}
             {!uploadedImage && !pendingImage && !isConverting && (
-              <>
-                {/* How It Works */}
+        <>
+          {/* How It Works */}
                 <div className="dirt-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
                   <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', lineHeight: '1.4' }}>
                     How It Works
@@ -393,33 +393,33 @@ function AppContent() {
                       <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                         Our special tool turns your photo into beautiful Minecraft blocks - just like in the movie!
                       </p>
-                    </div>
+              </div>
                     <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '350px', padding: '20px' }}>
                       <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '15px', lineHeight: '1.4' }}>
                         3. Download & Share
-                      </div>
+              </div>
                       <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                         Get your Minecraft-style picture and share it with friends and family!
                       </p>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Examples Section */}
+          {/* Examples Section */}
                 <div className="stone-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
                   <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', lineHeight: '1.4' }}>
                     See the Magic!
                   </h2>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
-                    {examplePairs.map((pair, index) => (
+              {examplePairs.map((pair, index) => (
                       <div key={index} className="minecraft-box dirt-bg" style={{ flex: '1', minWidth: '300px', maxWidth: '350px', padding: '20px' }}>
                         <div style={{ border: '4px solid #000', marginBottom: '10px', padding: '8px', backgroundColor: '#5c4033', height: '250px', overflow: 'hidden' }}>
-                          <img
-                            src={pair.before}
-                            alt="Original"
+                    <img 
+                      src={pair.before}
+                      alt="Original" 
                             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', border: '2px solid #000' }}
-                          />
-                        </div>
+                    />
+                  </div>
                         <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '5px', color: '#FFFFFF', textShadow: '2px 2px 0px #000' }}>
                           Original
                         </div>
@@ -427,21 +427,21 @@ function AppContent() {
                           ↓
                         </div>
                         <div style={{ border: '4px solid #000', marginTop: '10px', padding: '8px', backgroundColor: '#5c4033', height: '250px', overflow: 'hidden' }}>
-                          <img
-                            src={pair.after}
-                            alt="Minecraft Style"
+                    <img 
+                      src={pair.after}
+                      alt="Minecraft Style" 
                             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', border: '2px solid #000' }}
-                          />
-                        </div>
+                    />
+                  </div>
                         <div className="minecraft-text" style={{ fontSize: '20px', marginTop: '5px', color: '#FFFFFF', textShadow: '2px 2px 0px #000' }}>
                           Minecraft Style
                         </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Pricing Section */}
+          {/* Pricing Section */}
                 <div id="pricing-section" className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
                   <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', color: '#FFFFFF', lineHeight: '1.4' }}>
                     Simple Pricing
@@ -465,7 +465,7 @@ function AppContent() {
                         Get Started
                       </button>
                     </div>
-                    <div className="minecraft-box stone-bg breaking" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px', position: 'relative', transform: 'scale(1.05)' }}>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px', position: 'relative', transform: 'scale(1.05)' }}>
                       <div className="minecraft-text" style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ff8c1a', padding: '5px 15px', fontSize: '14px', border: '2px solid #000' }}>
                         MOST POPULAR
                       </div>
@@ -485,14 +485,14 @@ function AppContent() {
                       >
                         Best Value!
                       </button>
-                    </div>
+              </div>
                     <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px' }}>
                       <h3 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '15px', lineHeight: '1.4' }}>
                         Family Pack
                       </h3>
                       <div className="minecraft-text" style={{ fontSize: '36px', marginBottom: '20px' }}>
                         $15
-                      </div>
+              </div>
                       <p style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                         50 Photos
                       </p>
@@ -503,23 +503,23 @@ function AppContent() {
                       >
                         Get Started
                       </button>
-                    </div>
-                  </div>
+              </div>
+            </div>
                   <div className="minecraft-box" style={{ marginTop: '30px', padding: '15px', display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                       🎁 Want to give this as a gift? Click any package to add a gift message!
                     </p>
-                  </div>
-                </div>
-              </>
-            )}
+            </div>
+          </div>
+        </>
+      )}
 
-            {/* Footer */}
+      {/* Footer */}
             <div className="stone-bg" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid #000' }}>
               <p style={{ color: '#FFFFFF', fontSize: '14px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                 Made with ❤️ for Minecraft fans everywhere
               </p>
-            </div>
+      </div>
           </>
         } />
       </Routes>
