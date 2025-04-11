@@ -1,0 +1,57 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+} 
+.minecraft-btn {
+  pointer-events: auto !important; /* Override any blocking */
+  z-index: 1000; /* Bring button above other elements */
+  cursor: pointer; /* Indicate clickability */
+  position: relative; /* Ensure z-index applies */
+  background-color: #ff8c1a; /* Orange color for Purchase Credits */
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none; /* Clean Minecraft style */
+  text-align: center;
+}
+
+/* Ensure parent containers don’t block clicks */
+.grass-top,
+.stone-bg,
+.dirt-bg {
+  pointer-events: auto !important;
+}
+
+/* Optional: Specific styling for orange buttons */
+.minecraft-btn.orange {
+  background-color: #ff8c1a;
+  color: white;
+}
+
+/* Add your existing Minecraft-themed styles below */
+.minecraft-text {
+  font-family: 'Minecraft', monospace; /* Assuming a Minecraft font is available */
+}
+
+.stone-bg {
+  background-color: #7a7a7a; /* Example stone texture color */
+}
+
+.grass-top {
+  background-color: #78c850; /* Example grass color */
+}

@@ -1,0 +1,121 @@
+/* Minecraft-style button */
+.minecraft-btn {
+  background-color: #727272;
+  border: 2px solid #000;
+  border-bottom: 4px solid #000;
+  image-rendering: pixelated;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.minecraft-btn:hover {
+  background-color: #8b8b8b;
+}
+
+.minecraft-btn:active {
+  border-bottom: 2px solid #000;
+  transform: translateY(2px);
+}
+
+/* Minecraft-style container */
+.minecraft-box {
+  border: 4px solid #000;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.minecraft-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 0%,
+    transparent 45%,
+    rgba(255, 255, 255, 0.1) 45%,
+    rgba(255, 255, 255, 0.1) 55%,
+    transparent 55%,
+    transparent 100%
+  );
+  background-size: 8px 8px;
+}
+
+/* Minecraft dirt texture background */
+.dirt-bg {
+  background-color: #866043;
+  background-image: 
+    linear-gradient(45deg, #755539 25%, transparent 25%),
+    linear-gradient(-45deg, #755539 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #755539 75%),
+    linear-gradient(-45deg, transparent 75%, #755539 75%);
+  background-size: 4px 4px;
+  background-position: 0 0, 0 2px, 2px -2px, -2px 0px;
+}
+
+/* Minecraft stone texture background */
+.stone-bg {
+  background-color: #7a7a7a;
+  background-image: 
+    linear-gradient(45deg, #686868 25%, transparent 25%),
+    linear-gradient(-45deg, #686868 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #686868 75%),
+    linear-gradient(-45deg, transparent 75%, #686868 75%);
+  background-size: 4px 4px;
+  background-position: 0 0, 0 2px, 2px -2px, -2px 0px;
+}
+
+/* Minecraft grass texture */
+.grass-top {
+  background-color: #5b9b3f;
+  position: relative;
+}
+
+.grass-top::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(45deg, #4a8033 25%, transparent 25%),
+    linear-gradient(-45deg, #4a8033 25%, transparent 25%);
+  background-size: 4px 4px;
+  opacity: 0.5;
+}
+
+/* Pixelated text */
+.minecraft-text {
+  font-family: 'Press Start 2P', cursive;
+  text-shadow: 2px 2px #000;
+  letter-spacing: 1px;
+}
+
+/* Block breaking animation */
+@keyframes blockBreak {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.breaking {
+  position: relative;
+}
+
+.breaking::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, #000 25%, transparent 25%) -2px 0,
+    linear-gradient(-45deg, #000 25%, transparent 25%) 2px 0;
+  background-size: 4px 4px;
+  animation: blockBreak 1s infinite;
+  opacity: 0.3;
+} 
