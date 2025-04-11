@@ -149,6 +149,7 @@ function AppContent() {
     console.log('handlePurchase called with plan:', plan);
     try {
       analytics.trackPayment(plan, 'initiated');
+      console.log('Initiating payment for plan:', plan);
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,13 +157,17 @@ function AppContent() {
       });
 
       const data = await response.json();
+      console.log('Received response from server:', data);
       if (data.success && data.url) {
+        console.log('Redirecting to Stripe Checkout URL:', data.url);
         window.location.href = data.url; // Redirect to Stripe Checkout
         analytics.trackPayment(data.plan, 'completed');
       } else {
+        console.error('Failed to initiate payment:', data.error);
         setError('Failed to initiate payment. Please try again.');
       }
     } catch (err) {
+      console.error('Error initiating payment:', err.message);
       setError('Error initiating payment: ' + err.message);
     }
   };
