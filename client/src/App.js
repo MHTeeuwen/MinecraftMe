@@ -155,9 +155,9 @@ function AppContent() {
       analytics.trackPayment(plan, 'initiated');
       console.log('Initiating payment for plan:', plan);
       
-      // Ensure session storage is set to home before redirect
-      sessionStorage.setItem('previousPage', '/');
-      console.log('Session storage set to home:', sessionStorage.getItem('previousPage'));
+      // Before redirecting to Stripe, set the previousPage to the current location
+      sessionStorage.setItem('previousPage', location.pathname);
+      console.log('Session storage set to:', sessionStorage.getItem('previousPage'));
       
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
@@ -182,17 +182,18 @@ function AppContent() {
     }
   };
 
-  // Add useEffect to handle back navigation
+  // In the useEffect for back navigation, add console logs to track the previousPage
   useEffect(() => {
     console.log('Navigation effect triggered:', {
       currentPath: window.location.pathname,
-      sessionStorage: sessionStorage.getItem('previousPage'),
+      previousPage: sessionStorage.getItem('previousPage'),
       historyLength: window.history.length,
       search: window.location.search
     });
     
     const previousPage = sessionStorage.getItem('previousPage');
     if (previousPage) {
+      console.log('Navigating back to:', previousPage);
       navigate(previousPage);
       sessionStorage.removeItem('previousPage');
     }
