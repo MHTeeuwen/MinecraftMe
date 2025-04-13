@@ -6,7 +6,7 @@ import ImageUpload from './components/ImageUpload';
 import ErrorMessage from './components/ErrorMessage';
 import analytics from './services/analyticsService';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL;
 
 function AppContent() {
   const [uploadedImage, setUploadedImage] = useState(null);
