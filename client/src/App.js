@@ -63,6 +63,10 @@ function AppContent() {
     analytics.trackPageView('home');
   }, []);
 
+  useEffect(() => {
+    console.log('Current location:', location.pathname, location.search);
+  }, [location]);
+
   const handleError = (errorType, errorMessage) => {
     analytics.trackError(errorType, errorMessage);
     setError(errorMessage);
@@ -150,6 +154,10 @@ function AppContent() {
     try {
       analytics.trackPayment(plan, 'initiated');
       console.log('Initiating payment for plan:', plan);
+      
+      // Save the current page state to session storage
+      sessionStorage.setItem('previousPage', window.location.pathname);
+      
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,7 +168,8 @@ function AppContent() {
       console.log('Received response from server:', data);
       if (data.success && data.url) {
         console.log('Redirecting to Stripe Checkout URL:', data.url);
-        window.location.href = data.url; // Redirect to Stripe Checkout
+        // Use window.location.href for external Stripe redirect
+        window.location.href = data.url;
         analytics.trackPayment(data.plan, 'completed');
       } else {
         console.error('Failed to initiate payment:', data.error);
@@ -171,6 +180,15 @@ function AppContent() {
       setError('Error initiating payment: ' + err.message);
     }
   };
+
+  // Add useEffect to handle back navigation
+  useEffect(() => {
+    const previousPage = sessionStorage.getItem('previousPage');
+    if (previousPage) {
+      navigate(previousPage);
+      sessionStorage.removeItem('previousPage');
+    }
+  }, [navigate]);
 
   const handleGoBackToHome = () => {
     console.log('handleGoBackToHome called');
@@ -186,6 +204,11 @@ function AppContent() {
     setConvertedImage(null);
     setPendingImage(null);
     setError('');
+  };
+
+  const handleGoBack = () => {
+    console.log('Navigating back');
+    navigate(-1);
   };
 
   const examplePairs = [
