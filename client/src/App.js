@@ -155,15 +155,9 @@ function AppContent() {
       analytics.trackPayment(plan, 'initiated');
       console.log('Initiating payment for plan:', plan);
       
-      // Log current state before redirect
-      console.log('Before Stripe redirect:', {
-        currentPath: window.location.pathname,
-        sessionStorage: sessionStorage.getItem('previousPage'),
-        historyLength: window.history.length
-      });
-      
-      // Save the current page state to session storage
+      // Ensure session storage is set before redirect
       sessionStorage.setItem('previousPage', window.location.pathname);
+      console.log('Session storage set:', sessionStorage.getItem('previousPage'));
       
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
