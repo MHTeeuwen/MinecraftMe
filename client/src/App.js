@@ -155,9 +155,9 @@ function AppContent() {
       analytics.trackPayment(plan, 'initiated');
       console.log('Initiating payment for plan:', plan);
       
-      // Ensure session storage is set before redirect
-      sessionStorage.setItem('previousPage', window.location.pathname);
-      console.log('Session storage set:', sessionStorage.getItem('previousPage'));
+      // Ensure session storage is set to home before redirect
+      sessionStorage.setItem('previousPage', '/');
+      console.log('Session storage set to home:', sessionStorage.getItem('previousPage'));
       
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
