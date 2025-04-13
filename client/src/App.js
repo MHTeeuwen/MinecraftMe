@@ -155,6 +155,13 @@ function AppContent() {
       analytics.trackPayment(plan, 'initiated');
       console.log('Initiating payment for plan:', plan);
       
+      // Log current state before redirect
+      console.log('Before Stripe redirect:', {
+        currentPath: window.location.pathname,
+        sessionStorage: sessionStorage.getItem('previousPage'),
+        historyLength: window.history.length
+      });
+      
       // Save the current page state to session storage
       sessionStorage.setItem('previousPage', window.location.pathname);
       
@@ -183,12 +190,28 @@ function AppContent() {
 
   // Add useEffect to handle back navigation
   useEffect(() => {
+    console.log('Navigation effect triggered:', {
+      currentPath: window.location.pathname,
+      sessionStorage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length,
+      search: window.location.search
+    });
+    
     const previousPage = sessionStorage.getItem('previousPage');
     if (previousPage) {
       navigate(previousPage);
       sessionStorage.removeItem('previousPage');
     }
   }, [navigate]);
+
+  // General route change listener
+  useEffect(() => {
+    console.log('Route changed:', {
+      path: location.pathname,
+      previousPage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length
+    });
+  }, [location]);
 
   const handleGoBackToHome = () => {
     console.log('handleGoBackToHome called');
