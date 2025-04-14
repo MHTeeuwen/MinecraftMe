@@ -2,274 +2,242 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './minecraft.css';
-import ImageUpload from './components/ImageUpload'; // Keep the import even if component isn't rendered directly now
-import ErrorMessage from './components/ErrorMessage'; // Keep the import
+import ImageUpload from './components/ImageUpload';
+import ErrorMessage from './components/ErrorMessage';
 import analytics from './services/analyticsService';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 function AppContent() {
   const [uploadedImage, setUploadedImage] = useState(null);
-  const [pendingImage, setPendingImage] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null); // Store the image waiting for conversion
   const [isConverting, setIsConverting] = useState(false);
   const [convertedImage, setConvertedImage] = useState(null);
   const [error, setError] = useState('');
-  const [userCredits, setUserCredits] = useState(0);
+  const [userCredits, setUserCredits] = useState(0); // Track user's photo conversion credits
   const [hasUsedFreeConversion, setHasUsedFreeConversion] = useState(
     localStorage.getItem('hasUsedFreeConversion') === 'true'
-  );
+  ); // Track if the user has used their free conversion
   const location = useLocation();
   const navigate = useNavigate();
 
-  // <<< LOGGING >>>: Log component render/re-render
-  console.log('[AppContent] Component rendering or re-rendering. Location:', location.pathname + location.search);
-
-  // Check for successful payment on redirect (Keep original logic with logs)
+  // Check for successful payment on redirect
   useEffect(() => {
-    console.log('[Payment Verification useEffect] Running. Current URL:', window.location.href);
     const query = new URLSearchParams(location.search);
     const sessionId = query.get('session_id');
-    console.log('[Payment Verification useEffect] Checking for session_id in query:', location.search);
-    console.log('[Payment Verification useEffect] Found session_id:', sessionId);
+    
+    // Only proceed if we have a valid session ID that's not the placeholder
     if (sessionId && sessionId !== '{CHECKOUT_SESSION_ID}' && sessionId.length > 10) {
-      console.log('[Payment Verification useEffect] Valid session_id found. Proceeding with verification for:', sessionId);
+      console.log('Verifying payment with session ID:', sessionId);
+      
       fetch(`${API_URL}/api/stripe/session/${sessionId}`)
         .then(res => {
-          console.log('[Payment Verification useEffect] Fetch response status:', res.status);
           if (!res.ok) {
-            console.error(`[Payment Verification useEffect] Server error status: ${res.status} ${res.statusText}`);
             throw new Error(`Server returned ${res.status}: ${res.statusText}`);
           }
           return res.json();
         })
         .then(data => {
-          console.log('[Payment Verification useEffect] Verification API response data:', data);
           if (data.success) {
-            console.log('[Payment Verification useEffect] Payment success. Updating credits and potentially converting.');
             setUserCredits(prev => prev + parseInt(data.quantity || 0));
             setError('');
+            // If there's a pending image, convert it now that credits are available
             if (pendingImage) {
-              console.log('[Payment Verification useEffect] Pending image found, initiating conversion.');
               handleImageConversion(pendingImage);
             }
-            console.log('[Payment Verification useEffect] Navigating to /success.');
             navigate('/success');
           } else {
-            console.error('[Payment Verification useEffect] Payment verification failed via API:', data.error);
             setError('Payment verification failed. Please try again.');
-            console.log('[Payment Verification useEffect] Navigating to /cancel due to verification failure.');
             navigate('/cancel');
           }
         })
         .catch(err => {
-          console.error('[Payment Verification useEffect] Payment verification fetch/processing error:', err);
+          console.error('Payment verification error:', err);
           setError('Error verifying payment: ' + err.message);
-          console.log('[Payment Verification useEffect] Navigating to /cancel due to error.');
           navigate('/cancel');
         });
-    } else {
-        console.log('[Payment Verification useEffect] No valid session_id found or session_id is placeholder.');
     }
-  }, [location, navigate, pendingImage]); // Keep original dependencies
+  }, [location, navigate, pendingImage]);
 
-  // Track initial page view (Keep original logic with logs)
   useEffect(() => {
-    console.log('[PageView useEffect] Tracking page view for home.');
     analytics.trackPageView('home');
   }, []);
 
-  // Original log for location change (Keep original logic with logs)
   useEffect(() => {
-    console.log('[Location Change useEffect - React Router] Route changed:', {
-        path: location.pathname, search: location.search, state: location.state,
-        previousPageInSessionStorage: sessionStorage.getItem('previousPage'),
-        historyLength: window.history.length
-      });
-  }, [location]); // Keep original dependency
+    console.log('Current location:', location.pathname, location.search);
+  }, [location]);
 
-  // popstate listener (Keep original logic with logs)
-  useEffect(() => {
-    const handlePopState = (event) => {
-      console.log('[PopState Event Listener] Detected browser navigation (back/forward).');
-      console.log('[PopState Event Listener] New location (window.location):', window.location.href);
-      console.log('[PopState Event Listener] History state object (event.state):', event.state);
-      console.log('[PopState Event Listener] sessionStorage previousPage at event time:', sessionStorage.getItem('previousPage'));
-    };
-    console.log('[AppContent Mount Effect] Adding popstate listener for debugging.');
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      console.log('[AppContent Unmount Effect] Removing popstate listener.');
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []); // Empty dependency array
-
-  // Original potentially problematic useEffect - KEEP COMMENTED OUT FOR NOW
-    /*
-    useEffect(() => {
-      console.log('[Single Run useEffect - Potential Back Nav] Navigation effect triggered:', { ... });
-      const previousPage = sessionStorage.getItem('previousPage');
-      console.log('[Single Run useEffect - Potential Back Nav] Checking previousPage:', previousPage, 'against current path:', window.location.pathname);
-      if (previousPage && previousPage !== window.location.pathname) {
-        console.log('[Single Run useEffect - Potential Back Nav] Found previousPage in sessionStorage:', previousPage, '- Navigating now.');
-        // navigate(previousPage);
-        // sessionStorage.removeItem('previousPage');
-      } else if (previousPage && previousPage === window.location.pathname) {
-          console.log('[Single Run useEffect - Potential Back Nav] previousPage matches current path. Navigation skipped by this effect.');
-          // sessionStorage.removeItem('previousPage');
-      } else {
-          console.log('[Single Run useEffect - Potential Back Nav] No previousPage found in sessionStorage. No navigation triggered by this effect.');
-      }
-    }, [navigate]);
-    */
-
-  // All handlers (handleError, handleImageSelect, handleImageConversion, handlePurchase, handleGoBackToHome, etc.) remain the same as your original code with logs added previously
   const handleError = (errorType, errorMessage) => {
-    console.log('[handleError] Called with:', { errorType, errorMessage });
     analytics.trackError(errorType, errorMessage);
     setError(errorMessage);
   };
 
   const handleImageSelect = async (file, errorMessage) => {
-    console.log('[handleImageSelect] Called.');
     if (errorMessage) {
-      console.error('[handleImageSelect] Error message provided:', errorMessage);
       handleError('upload', errorMessage);
       setIsConverting(false);
       return;
     }
+
     if (!(file instanceof File)) {
-      console.error('[handleImageSelect] Invalid file type provided:', file);
       setError('Invalid file. Please upload a valid image.');
       setIsConverting(false);
       return;
     }
-    console.log('[handleImageSelect] Valid file selected:', { name: file.name, size: file.size, type: file.type });
+
     analytics.trackImageUpload('success', file.size);
     setUploadedImage(file);
     setError('');
     setConvertedImage(null);
-    console.log('[handleImageSelect] Checking conversion eligibility:', { hasUsedFreeConversion, userCredits });
+
+    // Check if the user has used their free conversion and has credits
     if (!hasUsedFreeConversion || userCredits > 0) {
-      console.log('[handleImageSelect] Eligible for conversion, calling handleImageConversion.');
+      // Proceed with conversion
       handleImageConversion(file);
     } else {
-      console.log('[handleImageSelect] Not eligible for free conversion and no credits. Setting pending image.');
+      // Show preview screen and prompt for payment
       setPendingImage(file);
+      // Removed error message as per request
     }
   };
 
   const handleImageConversion = async (file) => {
-    console.log('[handleImageConversion] Initiated for file:', file ? file.name : 'undefined');
-    if (!file) {
-        console.error("[handleImageConversion] No file provided.");
-        setError("Cannot convert, no image file available.");
-        return;
-    }
     setIsConverting(true);
-    setPendingImage(null);
+    setPendingImage(null); // Clear pending image since we're converting it
+
     const startTime = Date.now();
-    console.log('[handleImageConversion] Start time:', startTime);
+
     try {
       const reader = new FileReader();
-      console.log('[handleImageConversion] Reading file as Data URL...');
-      const base64Image = await new Promise((resolve, reject) => {
-        reader.onloadend = () => { console.log('[handleImageConversion] File read complete.'); resolve(reader.result.split(',')[1]); }
-        reader.onerror = (error) => { console.error('[handleImageConversion] FileReader error:', error); reject(new Error("Error reading file")); };
+      const base64Image = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
         reader.readAsDataURL(file);
       });
-      console.log('[handleImageConversion] Sending request to API:', API_URL + '/api/convert');
+
       const response = await fetch(`${API_URL}/api/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64Image, /* prompt, size */ }),
+        body: JSON.stringify({
+          image: base64Image,
+          prompt: 'Provide a concise description of the main subject in this image as a Minecraft character with blocky, pixelated features, cubic limbs, and a simplified color palette. Include specific details about their appearance, clothing, accessories, and any objects they are holding or interacting with. Focus on the subject and their immediate surroundings. Do not provide instructions, steps, or general advice.',
+          size: '1024x1024'
+        }),
       });
-      console.log('[handleImageConversion] API Response Status:', response.status);
+
       const data = await response.json();
-      console.log('Client received:', JSON.stringify(data, null, 2)); // Your original detailed log
+      console.log('Client received:', JSON.stringify(data, null, 2));
+
       if (!response.ok || !data.success) {
-         console.error('[handleImageConversion] API Error or Non-Success:', data.error || `Status: ${response.status}`);
         throw new Error(data.error || 'Failed to convert image');
       }
-      console.log('[handleImageConversion] Conversion successful. Received URL:', data.url);
+
       setConvertedImage(data.url);
       if (!hasUsedFreeConversion) {
-        console.log('[handleImageConversion] Marking free conversion as used.');
         setHasUsedFreeConversion(true);
         localStorage.setItem('hasUsedFreeConversion', 'true');
       } else {
-        console.log('[handleImageConversion] Deducting 1 user credit.');
-        setUserCredits(prev => Math.max(0, prev - 1));
+        setUserCredits(prev => prev - 1); // Deduct 1 credit per conversion
       }
-      const duration = Date.now() - startTime;
-      console.log('[handleImageConversion] Conversion took:', duration, 'ms');
-      analytics.trackConversion('success', duration);
+
+      analytics.trackConversion('success', Date.now() - startTime);
     } catch (err) {
       console.error('Conversion error:', err);
       setError('Failed to convert image. Please try again.');
-      const duration = Date.now() - startTime;
-      analytics.trackConversion('error', duration);
+      analytics.trackConversion('error', Date.now() - startTime);
     } finally {
-      console.log('[handleImageConversion] Setting isConverting to false.');
       setIsConverting(false);
     }
   };
 
   const handlePurchase = async (plan) => {
-    console.log('[handlePurchase] Initiated. Plan:', plan);
+    console.log('handlePurchase called with plan:', plan);
     try {
       analytics.trackPayment(plan, 'initiated');
-      console.log('[handlePurchase] Tracked payment initiation for plan:', plan);
-      const currentPagePath = location.pathname;
-      console.log('[handlePurchase] Current location.pathname:', currentPagePath);
-      sessionStorage.setItem('previousPage', currentPagePath);
-      const storedValue = sessionStorage.getItem('previousPage');
-      console.log('[handlePurchase] sessionStorage previousPage set to:', storedValue);
-      console.log('[handlePurchase] Sending request to create checkout session:', `${API_URL}/api/stripe/create-checkout-session`);
+      console.log('Initiating payment for plan:', plan);
+      
+      // Before redirecting to Stripe, set the previousPage to the current location
+      sessionStorage.setItem('previousPage', location.pathname);
+      console.log('Session storage set to:', sessionStorage.getItem('previousPage'));
+      
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
       });
-      console.log('[handlePurchase] Server response status:', response.status);
+
       const data = await response.json();
-      console.log('[handlePurchase] Received response from server:', data);
+      console.log('Received response from server:', data);
       if (data.success && data.url) {
-        console.log('[handlePurchase] Redirecting to Stripe Checkout URL:', data.url);
-        console.log('[handlePurchase] --- Redirecting NOW using window.location.href ---');
+        console.log('Redirecting to Stripe Checkout URL:', data.url);
+        // Use window.location.href for external Stripe redirect
         window.location.href = data.url;
-        analytics.trackPayment(data.plan || plan, 'completed');
+        analytics.trackPayment(data.plan, 'completed');
       } else {
-        console.error('[handlePurchase] Failed to initiate payment (API error or no URL):', data.error || 'No error message provided.');
+        console.error('Failed to initiate payment:', data.error);
         setError('Failed to initiate payment. Please try again.');
       }
     } catch (err) {
-      console.error('[handlePurchase] Error during fetch or processing:', err);
+      console.error('Error initiating payment:', err.message);
       setError('Error initiating payment: ' + err.message);
     }
   };
 
+  // In the useEffect for back navigation, add console logs to track the previousPage
+  useEffect(() => {
+    console.log('Navigation effect triggered:', {
+      currentPath: window.location.pathname,
+      previousPage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length,
+      search: window.location.search
+    });
+    
+    const previousPage = sessionStorage.getItem('previousPage');
+    if (previousPage) {
+      console.log('Navigating back to:', previousPage);
+      navigate(previousPage);
+      sessionStorage.removeItem('previousPage');
+    }
+  }, [navigate]);
+
+  // General route change listener
+  useEffect(() => {
+    console.log('Route changed:', {
+      path: location.pathname,
+      previousPage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length
+    });
+  }, [location]);
+
   const handleGoBackToHome = () => {
-    console.log('[handleGoBackToHome] called - Resetting state.');
-    setUploadedImage(null); setConvertedImage(null); setPendingImage(null); setError('');
-    if (location.pathname !== '/') { console.log('[handleGoBackToHome] Navigating to /'); navigate('/'); }
+    console.log('handleGoBackToHome called');
+    setUploadedImage(null);
+    setConvertedImage(null);
+    setPendingImage(null);
+    setError('');
   };
 
   const handleRetryWithAnotherPicture = () => {
-    console.log('[handleRetryWithAnotherPicture] called - Resetting state.');
-    setUploadedImage(null); setConvertedImage(null); setPendingImage(null); setError('');
-    if (location.pathname !== '/') { console.log('[handleRetryWithAnotherPicture] Navigating to /'); navigate('/'); }
+    console.log('handleRetryWithAnotherPicture called');
+    setUploadedImage(null);
+    setConvertedImage(null);
+    setPendingImage(null);
+    setError('');
   };
 
-  // Unused handleGoBack kept for completeness from original code
-  // const handleGoBack = () => { console.log('[handleGoBack] Navigating back using navigate(-1)'); navigate(-1); };
+  const handleGoBack = () => {
+    console.log('Navigating back');
+    navigate(-1);
+  };
 
-  // Original examplePairs array - not rendered in this version
-  // const examplePairs = [ ... ];
+  const examplePairs = [
+    { before: '/examples/input1.png', after: '/examples/output1.png' },
+    { before: '/examples/input2.png', after: '/examples/output2.png' },
+    { before: '/examples/input3.png', after: '/examples/output3.png' }
+  ];
 
-
-  // *** MODIFIED JSX FOR TESTING ***
   return (
     <div className="stone-bg" style={{ minHeight: '100vh', color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
       <Routes>
-        {/* Original /success route */}
         <Route path="/success" element={
           <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF' }}>
@@ -280,14 +248,16 @@ function AppContent() {
             </p>
             <button
               className="minecraft-btn minecraft-text"
-              onClick={() => { console.log('[Button Click] Convert a Photo button clicked (success page)'); navigate('/'); }}
+              onClick={() => {
+                console.log('Convert a Photo button clicked (success page)');
+                navigate('/');
+              }}
               style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
             >
               Convert a Photo
             </button>
           </div>
         } />
-        {/* Original /cancel route */}
         <Route path="/cancel" element={
           <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF' }}>
@@ -298,77 +268,304 @@ function AppContent() {
             </p>
             <button
               className="minecraft-btn minecraft-text"
-              onClick={() => { console.log('[Button Click] Try Again button clicked (cancel page)'); navigate('/'); }}
+              onClick={() => {
+                console.log('Try Again button clicked (cancel page)');
+                navigate('/');
+              }}
               style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
             >
               Try Again
             </button>
           </div>
         } />
-
-        {/* Modified / route */}
         <Route path="/" element={
           <>
-            {/* Restore Hero Section structure */}
+            {/* Hero Section */}
             <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-              {/* Restore basic header content */}
               <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF', lineHeight: '1.4', cursor: 'pointer' }} onClick={() => navigate('/')}>
                 Turn Your Photos Into Minecraft Art!
               </h1>
               <p style={{ fontSize: '20px', marginBottom: '10px', color: '#FFFFFF', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                 First conversion free! Additional conversions start at $5 for 10 photos.
               </p>
-              {/* Add back a simple button first */}
               <button
                 className="minecraft-btn minecraft-text"
-                onClick={() => console.log('Test Pricing Button Clicked')} // Simplified onClick for now
+                onClick={() => {
+                  console.log('View Pricing button clicked (header)');
+                  handlePurchase('starter'); // Directly initiate purchase
+                }}
                 style={{ backgroundColor: '#ff8c1a', padding: '8px 16px', fontSize: '14px', marginBottom: '20px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
               >
-                View Pricing (Test)
+                View Pricing
               </button>
-              {/* Use state variable */}
               <p style={{ fontSize: '20px', marginBottom: '30px', color: '#FFFFFF', maxWidth: '600px', margin: '0 auto 30px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
-                You have {userCredits} credits remaining. (Test)
+                You have {userCredits} credits remaining.
               </p>
 
-              {/* Restore the main conditional rendering logic */}
               {convertedImage ? (
-                 // *** Keep content simple initially ***
-                <div style={{padding: '20px', border: '1px dashed white', margin: '20px'}}>Converted Image Placeholder</div>
+                <div style={{ marginBottom: '40px' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '20px', color: '#FFFFFF' }}>
+                    Your Minecraft Style Photo is Ready!
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                    <div className="minecraft-box" style={{ padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <img src={uploadedImage ? URL.createObjectURL(uploadedImage) : ''} alt="Original" style={{ maxWidth: '100%', maxHeight: '300px', border: '4px solid #000' }} />
+                      <p style={{ marginTop: '10px' }}>Original</p>
+                    </div>
+                    <div className="minecraft-box" style={{ padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <img src={convertedImage} alt="Minecraft Style" style={{ maxWidth: '100%', maxHeight: '300px', border: '4px solid #000' }} />
+                      <p style={{ marginTop: '10px' }}>Minecraft Style</p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', zIndex: 1000 }}>
+                    <button
+                      className="minecraft-btn minecraft-text"
+                      onClick={handleGoBackToHome}
+                      style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                    >
+                      Go Back to Home
+                    </button>
+                    <button
+                      className="minecraft-btn minecraft-text"
+                      onClick={handleRetryWithAnotherPicture}
+                      style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                    >
+                      Retry with Another Picture
+                    </button>
+                  </div>
+                  <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '4px', display: 'inline-block' }}>
+                    <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      Loved your Minecraft-style photo? Get more conversions with our pricing plans!
+                      <button
+                        className="minecraft-btn minecraft-text"
+                        onClick={() => {
+                          console.log('View Plans button clicked (result screen)');
+                          handlePurchase('starter'); // Directly initiate purchase
+                        }}
+                        style={{ backgroundColor: '#ff8c1a', padding: '8px 16px', fontSize: '14px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                      >
+                        View Plans
+                      </button>
+                    </p>
+                  </div>
+                </div>
               ) : pendingImage ? (
-                 // *** Keep content simple initially ***
-                <div style={{padding: '20px', border: '1px dashed white', margin: '20px'}}>Pending Image Placeholder</div>
+                <div style={{ marginBottom: '40px' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '20px', color: '#FFFFFF' }}>
+                    Unlock Your Minecraft Style Photo!
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                    <div className="minecraft-box" style={{ padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <img src={pendingImage ? URL.createObjectURL(pendingImage) : ''} alt="Original" style={{ maxWidth: '100%', maxHeight: '300px', border: '4px solid #000' }} />
+                      <p style={{ marginTop: '10px' }}>Original</p>
+                    </div>
+                    <div className="minecraft-box" style={{ padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+                      <img
+                        src={pendingImage ? URL.createObjectURL(pendingImage) : ''}
+                        alt="Minecraft Style"
+                        style={{ maxWidth: '100%', maxHeight: '300px', border: '4px solid #000', filter: 'blur(10px)' }}
+                      />
+                      <p style={{ marginTop: '10px' }}>Minecraft Style</p>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                    <p style={{ fontSize: '16px', marginBottom: '10px', color: '#FFFFFF', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                      Unlock this Minecraft-style image by purchasing credits!
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                    <button
+                      className="minecraft-btn minecraft-text"
+                      onClick={() => {
+                        console.log('Purchase Credits button clicked (preview screen)');
+                        handlePurchase('starter'); // Directly initiate purchase
+                      }}
+                      style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                    >
+                      Purchase Credits
+                    </button>
+                    <button
+                      className="minecraft-btn minecraft-text"
+                      onClick={() => {
+                        console.log('Go Back button clicked (preview screen)');
+                        setPendingImage(null);
+                        setUploadedImage(null);
+                        setError('');
+                      }}
+                      style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                    >
+                      Go Back
+                    </button>
+                  </div>
+                  {/* Removed error message as per request */}
+                </div>
               ) : (
                 <>
-                  {/* *** Temporarily render placeholder instead of ImageUpload *** */}
-                  <div style={{padding: '20px', border: '1px dashed white', margin: '20px'}}>Image Upload Placeholder</div>
-
-                  {/* *** Temporarily render placeholder instead of ErrorMessage *** */}
-                  {error && <div style={{padding: '10px', border: '1px solid red', margin: '20px', color: 'red'}}>Error Message Placeholder: {error}</div>}
-
-                  {/* *** Keep isConverting simple initially *** */}
-                  {isConverting && <div style={{padding: '10px', border: '1px dashed yellow', margin: '20px'}}>Converting Placeholder...</div>}
-                </>
-              )}
-            </div> {/* End Hero Section div */}
-
-            {/* *** Temporarily COMMENT OUT the rest (How It Works, Examples, Pricing) *** */}
-            {/*
-            {!uploadedImage && !pendingImage && !isConverting && (
-              <>
-                 // How It Works section ...
-                 // Examples Section ...
-                 // Pricing Section ...
-              </>
+            <ImageUpload onImageSelect={handleImageSelect} />
+            {isConverting && (
+                    <div style={{ marginTop: '20px', padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
+                <div className="minecraft-text breaking">Converting your photo...</div>
+              </div>
             )}
-            */}
+                  <ErrorMessage 
+                    message={error} 
+                    onClose={() => setError('')} 
+                  />
+          </>
+        )}
+      </div>
 
-            {/* Footer */}
+      {/* Only show examples if no image is being processed */}
+            {!uploadedImage && !pendingImage && !isConverting && (
+        <>
+          {/* How It Works */}
+                <div className="dirt-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', lineHeight: '1.4' }}>
+                    How It Works
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '350px', padding: '20px' }}>
+                      <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        1. Upload Your Photo
+                      </div>
+                      <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        Choose any photo you love - family pictures, vacation memories, or your favorite selfie!
+                      </p>
+                    </div>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '350px', padding: '20px' }}>
+                      <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        2. Watch the Magic
+                      </div>
+                      <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        Our special tool turns your photo into beautiful Minecraft blocks - just like in the movie!
+                      </p>
+              </div>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '350px', padding: '20px' }}>
+                      <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        3. Download & Share
+              </div>
+                      <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        Get your Minecraft-style picture and share it with friends and family!
+                      </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Examples Section */}
+                <div className="stone-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', lineHeight: '1.4' }}>
+                    See the Magic!
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+              {examplePairs.map((pair, index) => (
+                      <div key={index} className="minecraft-box dirt-bg" style={{ flex: '1', minWidth: '300px', maxWidth: '350px', padding: '20px' }}>
+                        <div style={{ border: '4px solid #000', marginBottom: '10px', padding: '8px', backgroundColor: '#5c4033', height: '250px', overflow: 'hidden' }}>
+                    <img 
+                      src={pair.before}
+                      alt="Original" 
+                            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', border: '2px solid #000' }}
+                    />
+                  </div>
+                        <div className="minecraft-text" style={{ fontSize: '20px', marginBottom: '5px', color: '#FFFFFF', textShadow: '2px 2px 0px #000' }}>
+                          Original
+                        </div>
+                        <div className="minecraft-text" style={{ fontSize: '24px', margin: '5px 0', color: '#FFFFFF' }}>
+                          ↓
+                        </div>
+                        <div style={{ border: '4px solid #000', marginTop: '10px', padding: '8px', backgroundColor: '#5c4033', height: '250px', overflow: 'hidden' }}>
+                    <img 
+                      src={pair.after}
+                      alt="Minecraft Style" 
+                            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', border: '2px solid #000' }}
+                    />
+                  </div>
+                        <div className="minecraft-text" style={{ fontSize: '20px', marginTop: '5px', color: '#FFFFFF', textShadow: '2px 2px 0px #000' }}>
+                          Minecraft Style
+                        </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pricing Section */}
+                <div id="pricing-section" className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', color: '#FFFFFF', lineHeight: '1.4' }}>
+                    Simple Pricing
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px' }}>
+                      <h3 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        Starter Pack
+                      </h3>
+                      <div className="minecraft-text" style={{ fontSize: '36px', marginBottom: '20px' }}>
+                        $5
+                      </div>
+                      <p style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        10 Photos
+                      </p>
+                      <button
+                        className="minecraft-btn minecraft-text"
+                        onClick={() => handlePurchase('starter')}
+                        style={{ backgroundColor: '#ff4d4d', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                      >
+                        Get Started
+                      </button>
+                    </div>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px', position: 'relative', transform: 'scale(1.05)' }}>
+                      <div className="minecraft-text" style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#ff8c1a', padding: '5px 15px', fontSize: '14px', border: '2px solid #000' }}>
+                        MOST POPULAR
+                      </div>
+                      <h3 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        Value Pack
+                      </h3>
+                      <div className="minecraft-text" style={{ fontSize: '36px', marginBottom: '20px' }}>
+                        $10
+                      </div>
+                      <p style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        30 Photos
+                      </p>
+                      <button
+                        className="minecraft-btn minecraft-text"
+                        onClick={() => handlePurchase('value')}
+                        style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                      >
+                        Best Value!
+                      </button>
+              </div>
+                    <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px' }}>
+                      <h3 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '15px', lineHeight: '1.4' }}>
+                        Family Pack
+                      </h3>
+                      <div className="minecraft-text" style={{ fontSize: '36px', marginBottom: '20px' }}>
+                        $15
+              </div>
+                      <p style={{ marginBottom: '20px', fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                        50 Photos
+                      </p>
+                      <button
+                        className="minecraft-btn minecraft-text"
+                        onClick={() => handlePurchase('family')}
+                        style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                      >
+                        Get Started
+                      </button>
+              </div>
+            </div>
+                  <div className="minecraft-box" style={{ marginTop: '30px', padding: '15px', display: 'inline-block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                      🎁 Want to give this as a gift? Click any package to add a gift message!
+                    </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Footer */}
             <div className="stone-bg" style={{ padding: '20px', textAlign: 'center', borderTop: '4px solid #000' }}>
               <p style={{ color: '#FFFFFF', fontSize: '14px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
                 Made with ❤️ for Minecraft fans everywhere
               </p>
-            </div>
+      </div>
           </>
         } />
       </Routes>
@@ -376,9 +573,7 @@ function AppContent() {
   );
 }
 
-// Original App wrapper component
 function App() {
-  console.log('[App Wrapper] Rendering Router.');
   return (
     <Router>
       <AppContent />
