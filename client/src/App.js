@@ -21,90 +21,107 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  console.log('[AppContent] Component rendering or re-rendering. Location:', location.pathname + location.search); // Log initial render/re-render
+  // <<< LOGGING >>>: Log component render/re-render
+  console.log('[AppContent] Component rendering or re-rendering. Location:', location.pathname + location.search);
 
   // Check for successful payment on redirect
   useEffect(() => {
-    console.log('[Payment Verification useEffect] Running. Current URL:', window.location.href); // Log effect start
+    // <<< LOGGING >>>: Log effect start and current URL
+    console.log('[Payment Verification useEffect] Running. Current URL:', window.location.href);
     const query = new URLSearchParams(location.search);
     const sessionId = query.get('session_id');
 
-    console.log('[Payment Verification useEffect] Checking for session_id in query:', location.search); // Log query params
-    console.log('[Payment Verification useEffect] Found session_id:', sessionId); // Log extracted session_id
+    // <<< LOGGING >>>: Log query params check and extracted session_id
+    console.log('[Payment Verification useEffect] Checking for session_id in query:', location.search);
+    console.log('[Payment Verification useEffect] Found session_id:', sessionId);
 
     // Only proceed if we have a valid session ID that's not the placeholder
     if (sessionId && sessionId !== '{CHECKOUT_SESSION_ID}' && sessionId.length > 10) {
+      // <<< LOGGING >>>: Log verification initiation
       console.log('[Payment Verification useEffect] Valid session_id found. Proceeding with verification for:', sessionId);
 
       fetch(`${API_URL}/api/stripe/session/${sessionId}`)
         .then(res => {
-          console.log('[Payment Verification useEffect] Fetch response status:', res.status); // Log fetch status
+          // <<< LOGGING >>>: Log fetch status
+          console.log('[Payment Verification useEffect] Fetch response status:', res.status);
           if (!res.ok) {
+            // <<< LOGGING >>>: Log error before throwing
+            console.error(`[Payment Verification useEffect] Server error status: ${res.status} ${res.statusText}`);
             throw new Error(`Server returned ${res.status}: ${res.statusText}`);
           }
           return res.json();
         })
         .then(data => {
-          console.log('[Payment Verification useEffect] Verification API response data:', data); // Log API response
+          // <<< LOGGING >>>: Log API response data
+          console.log('[Payment Verification useEffect] Verification API response data:', data);
           if (data.success) {
+            // <<< LOGGING >>>: Log success path
             console.log('[Payment Verification useEffect] Payment success. Updating credits and potentially converting.');
             setUserCredits(prev => prev + parseInt(data.quantity || 0));
             setError('');
             // If there's a pending image, convert it now that credits are available
             if (pendingImage) {
+              // <<< LOGGING >>>: Log pending image conversion start
               console.log('[Payment Verification useEffect] Pending image found, initiating conversion.');
-              handleImageConversion(pendingImage);
+              handleImageConversion(pendingImage); // Ensure handleImageConversion also has logs
             }
+            // <<< LOGGING >>>: Log navigation on success
             console.log('[Payment Verification useEffect] Navigating to /success.');
             navigate('/success');
           } else {
+            // <<< LOGGING >>>: Log verification failure via API
             console.error('[Payment Verification useEffect] Payment verification failed via API:', data.error);
             setError('Payment verification failed. Please try again.');
+            // <<< LOGGING >>>: Log navigation on failure
             console.log('[Payment Verification useEffect] Navigating to /cancel due to verification failure.');
             navigate('/cancel');
           }
         })
         .catch(err => {
+          // <<< LOGGING >>>: Log any fetch/processing error
           console.error('[Payment Verification useEffect] Payment verification fetch/processing error:', err);
           setError('Error verifying payment: ' + err.message);
+          // <<< LOGGING >>>: Log navigation on error
           console.log('[Payment Verification useEffect] Navigating to /cancel due to error.');
           navigate('/cancel');
         });
     } else {
+        // <<< LOGGING >>>: Log if no valid session_id is found
         console.log('[Payment Verification useEffect] No valid session_id found or session_id is placeholder.');
     }
-    // Make sure dependencies cover all necessary variables used inside
-  }, [location, navigate, pendingImage, API_URL]); // Added API_URL dependency
+  }, [location, navigate, pendingImage]); // Keep original dependencies
 
   // Track initial page view
   useEffect(() => {
+    // <<< LOGGING >>>: Log page view tracking
     console.log('[PageView useEffect] Tracking page view for home.');
     analytics.trackPageView('home');
   }, []);
 
-  // Log any location change (useful for seeing React Router's perspective)
+  // Original log for location change
   useEffect(() => {
-    console.log('[Location Change useEffect] Route changed (React Router):', {
+    // <<< LOGGING >>>: Enhanced log for location change from React Router perspective
+    console.log('[Location Change useEffect - React Router] Route changed:', {
         path: location.pathname,
         search: location.search,
         state: location.state, // Log any state passed during navigation
-        previousPageInSessionStorage: sessionStorage.getItem('previousPage'),
-        historyLength: window.history.length
+        previousPageInSessionStorage: sessionStorage.getItem('previousPage'), // Check session storage value at this point
+        historyLength: window.history.length // Log browser history length
       });
-  }, [location]);
+  }, [location]); // Keep original dependency
 
-  // *** NEW: Listen for browser back/forward navigation events ***
+  // <<< ADDED FOR DEBUGGING >>>: Listen for browser back/forward navigation events
   useEffect(() => {
     const handlePopState = (event) => {
-      console.log('[PopState Event] Detected browser navigation (back/forward).');
-      console.log('[PopState Event] New location (window.location):', window.location.href);
-      // We can also log the state associated with the history entry, if any
-      console.log('[PopState Event] History state object (event.state):', event.state);
+      console.log('[PopState Event Listener] Detected browser navigation (back/forward).');
+      console.log('[PopState Event Listener] New location (window.location):', window.location.href);
+      // Log the state associated with the history entry, if any was pushed
+      console.log('[PopState Event Listener] History state object (event.state):', event.state);
       // Log sessionStorage again at the moment the event fires
-      console.log('[PopState Event] sessionStorage previousPage at event time:', sessionStorage.getItem('previousPage'));
+      console.log('[PopState Event Listener] sessionStorage previousPage at event time:', sessionStorage.getItem('previousPage'));
     };
 
-    console.log('[AppContent Mount Effect] Adding popstate listener.');
+    console.log('[AppContent Mount Effect] Adding popstate listener for debugging.');
     window.addEventListener('popstate', handlePopState);
 
     // Cleanup function to remove the listener when the component unmounts
@@ -115,43 +132,18 @@ function AppContent() {
   }, []); // Empty dependency array: runs only on mount and cleans up on unmount
 
 
-  // *** This useEffect is likely NOT doing what you intend for back navigation FROM Stripe ***
-  // It runs only once on mount because `navigate` function reference is stable.
-  // It might cause issues if it runs when the app loads initially at '/'.
-  // Consider removing or heavily revising this based on its actual intended purpose.
-  useEffect(() => {
-    console.log('[Single Run useEffect - Potential Back Nav] Running ONCE on mount.');
-    console.log('[Single Run useEffect - Potential Back Nav] Checking sessionStorage:', {
-      currentPath: window.location.pathname, // Use window.location here as location from useLocation might not be updated yet on initial load
-      previousPage: sessionStorage.getItem('previousPage'),
-      historyLength: window.history.length,
-      search: window.location.search
-    });
-
-    const previousPage = sessionStorage.getItem('previousPage');
-    // *** CAUTION: This check might be problematic ***
-    // If the user lands on '/' initially, and 'previousPage' happens to be '/',
-    // this could cause an unnecessary navigation loop or unexpected behavior.
-    // It definitely won't trigger when returning from Stripe via browser back button.
-    if (previousPage && previousPage !== window.location.pathname) { // Added check to prevent navigating to the same page
-      console.warn('[Single Run useEffect - Potential Back Nav] Found previousPage in sessionStorage:', previousPage, '- Navigating now.');
-      // navigate(previousPage); // <-- Keep this commented out unless you are SURE it's needed and won't cause loops.
-      // sessionStorage.removeItem('previousPage'); // Clear it if used
-    } else {
-        console.log('[Single Run useEffect - Potential Back Nav] No previousPage found in sessionStorage, or it matches current path. No navigation triggered by this effect.');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Dependency array only includes navigate, which is stable. Consider removing navigate if it causes lint warnings and you understand it runs once.
-
   const handleError = (errorType, errorMessage) => {
+    // <<< LOGGING >>>: Log when handleError is called
     console.log('[handleError] Called with:', { errorType, errorMessage });
     analytics.trackError(errorType, errorMessage);
     setError(errorMessage);
   };
 
   const handleImageSelect = async (file, errorMessage) => {
+    // <<< LOGGING >>>: Log function start
     console.log('[handleImageSelect] Called.');
     if (errorMessage) {
+      // <<< LOGGING >>>: Log if error message provided directly
       console.error('[handleImageSelect] Error message provided:', errorMessage);
       handleError('upload', errorMessage);
       setIsConverting(false);
@@ -159,123 +151,143 @@ function AppContent() {
     }
 
     if (!(file instanceof File)) {
+      // <<< LOGGING >>>: Log invalid file type
       console.error('[handleImageSelect] Invalid file type provided:', file);
       setError('Invalid file. Please upload a valid image.');
       setIsConverting(false);
       return;
     }
 
+    // <<< LOGGING >>>: Log valid file selection details
     console.log('[handleImageSelect] Valid file selected:', { name: file.name, size: file.size, type: file.type });
     analytics.trackImageUpload('success', file.size);
     setUploadedImage(file);
     setError('');
     setConvertedImage(null);
 
-    // Check credits / free conversion status
+    // <<< LOGGING >>>: Log check for conversion eligibility
     console.log('[handleImageSelect] Checking conversion eligibility:', { hasUsedFreeConversion, userCredits });
+    // Check if the user has used their free conversion and has credits
     if (!hasUsedFreeConversion || userCredits > 0) {
+      // <<< LOGGING >>>: Log decision to proceed with conversion
       console.log('[handleImageSelect] Eligible for conversion, calling handleImageConversion.');
       handleImageConversion(file);
     } else {
+      // <<< LOGGING >>>: Log decision to set pending image
       console.log('[handleImageSelect] Not eligible for free conversion and no credits. Setting pending image.');
       setPendingImage(file);
-      // Removed error message as per request
+      // Removed error message display as per original code
     }
   };
 
   const handleImageConversion = async (file) => {
+    // <<< LOGGING >>>: Log conversion start and file name
     console.log('[handleImageConversion] Initiated for file:', file ? file.name : 'undefined');
     if (!file) {
+        // <<< LOGGING >>>: Log error if no file provided
         console.error("[handleImageConversion] No file provided.");
         setError("Cannot convert, no image file available.");
         return;
     }
-
     setIsConverting(true);
     setPendingImage(null); // Clear pending image since we're converting it
 
     const startTime = Date.now();
+    // <<< LOGGING >>>: Log start time
     console.log('[handleImageConversion] Start time:', startTime);
 
     try {
       const reader = new FileReader();
+      // <<< LOGGING >>>: Log file reading start
       console.log('[handleImageConversion] Reading file as Data URL...');
       const base64Image = await new Promise((resolve, reject) => {
         reader.onloadend = () => {
+            // <<< LOGGING >>>: Log file reading completion
             console.log('[handleImageConversion] File read complete.');
             resolve(reader.result.split(',')[1]);
         }
         reader.onerror = (error) => {
+            // <<< LOGGING >>>: Log file reading error
             console.error('[handleImageConversion] FileReader error:', error);
             reject(new Error("Error reading file"));
         };
         reader.readAsDataURL(file);
       });
 
+      // <<< LOGGING >>>: Log API request sending
       console.log('[handleImageConversion] Sending request to API:', API_URL + '/api/convert');
       const response = await fetch(`${API_URL}/api/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: base64Image,
+          image: base64Image, // Be mindful if logging large base64 strings is needed/desired
           prompt: 'Provide a concise description of the main subject in this image as a Minecraft character with blocky, pixelated features, cubic limbs, and a simplified color palette. Include specific details about their appearance, clothing, accessories, and any objects they are holding or interacting with. Focus on the subject and their immediate surroundings. Do not provide instructions, steps, or general advice.',
           size: '1024x1024'
         }),
       });
 
+      // <<< LOGGING >>>: Log API response status
       console.log('[handleImageConversion] API Response Status:', response.status);
       const data = await response.json();
-      // Avoid logging the full base64 potentially returned in error messages
-      console.log('[handleImageConversion] API Response Data (Success Check):', { success: data.success, url: data.url, error: data.error ? 'Error present' : 'No error field' });
-
+      // Original console.log kept:
+      console.log('Client received:', JSON.stringify(data, null, 2)); // Your original detailed log
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || `Failed to convert image. Status: ${response.status}`);
+         // <<< LOGGING >>>: Log specific error before throwing
+         console.error('[handleImageConversion] API Error or Non-Success:', data.error || `Status: ${response.status}`);
+        throw new Error(data.error || 'Failed to convert image');
       }
 
+      // <<< LOGGING >>>: Log successful conversion and URL
       console.log('[handleImageConversion] Conversion successful. Received URL:', data.url);
       setConvertedImage(data.url);
-
       // Update usage stats
       if (!hasUsedFreeConversion) {
+        // <<< LOGGING >>>: Log marking free conversion used
         console.log('[handleImageConversion] Marking free conversion as used.');
         setHasUsedFreeConversion(true);
         localStorage.setItem('hasUsedFreeConversion', 'true');
       } else {
+        // <<< LOGGING >>>: Log deducting credit
         console.log('[handleImageConversion] Deducting 1 user credit.');
         setUserCredits(prev => Math.max(0, prev - 1)); // Ensure credits don't go below 0
       }
 
       const duration = Date.now() - startTime;
+      // <<< LOGGING >>>: Log conversion duration
       console.log('[handleImageConversion] Conversion took:', duration, 'ms');
       analytics.trackConversion('success', duration);
 
     } catch (err) {
-      console.error('[handleImageConversion] Error during conversion process:', err);
-      setError(`Failed to convert image: ${err.message}. Please try again.`);
+      // Original error logging kept:
+      console.error('Conversion error:', err);
+      setError('Failed to convert image. Please try again.');
       const duration = Date.now() - startTime;
       analytics.trackConversion('error', duration);
     } finally {
+      // <<< LOGGING >>>: Log setting isConverting false
       console.log('[handleImageConversion] Setting isConverting to false.');
       setIsConverting(false);
     }
   };
 
   const handlePurchase = async (plan) => {
-    console.log('[handlePurchase] Initiated. Plan:', plan);
+    // Original logs kept and enhanced:
+    console.log('[handlePurchase] Initiated. Plan:', plan); // Enhanced log
     try {
       analytics.trackPayment(plan, 'initiated');
-      console.log('[handlePurchase] Tracked payment initiation.');
+      console.log('[handlePurchase] Tracked payment initiation for plan:', plan); // Enhanced log
 
       const currentPagePath = location.pathname;
+      // <<< LOGGING >>>: Log current path before setting session storage
       console.log('[handlePurchase] Current location.pathname:', currentPagePath);
-      console.log('[handlePurchase] Setting sessionStorage previousPage to:', currentPagePath);
+      // Before redirecting to Stripe, set the previousPage to the current location
       sessionStorage.setItem('previousPage', currentPagePath);
-      // Verify it was set
+      // Original log kept and enhanced:
       const storedValue = sessionStorage.getItem('previousPage');
-      console.log('[handlePurchase] sessionStorage previousPage confirmed value after set:', storedValue);
+      console.log('[handlePurchase] sessionStorage previousPage set to:', storedValue); // Enhanced log
 
-
+      // <<< LOGGING >>>: Log API endpoint being called
       console.log('[handlePurchase] Sending request to create checkout session:', `${API_URL}/api/stripe/create-checkout-session`);
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
@@ -283,35 +295,80 @@ function AppContent() {
         body: JSON.stringify({ plan }),
       });
 
+      // <<< LOGGING >>>: Log server response status
       console.log('[handlePurchase] Server response status:', response.status);
       const data = await response.json();
-      console.log('[handlePurchase] Received data from server:', data); // Log the full response
+      // Original log kept:
+      console.log('[handlePurchase] Received response from server:', data);
 
       if (data.success && data.url) {
-        console.log('[handlePurchase] Success response. Redirecting to Stripe URL:', data.url);
-        // *** CRITICAL: Using window.location.href for redirect ***
+        // Original log kept:
+        console.log('[handlePurchase] Redirecting to Stripe Checkout URL:', data.url);
+        // Use window.location.href for external Stripe redirect
+        // <<< LOGGING >>>: Explicitly log the redirect method being used
         console.log('[handlePurchase] --- Redirecting NOW using window.location.href ---');
         window.location.href = data.url;
-        // Note: analytics.trackPayment for 'completed' might be better placed after successful verification, not just before redirect.
-        // analytics.trackPayment(data.plan || plan, 'redirected_to_stripe'); // More accurate tracking point
+        // Original analytics call kept: (Consider if 'completed' is the right term here vs. 'redirected')
+        analytics.trackPayment(data.plan || plan, 'completed'); // Original used plan from data if available
       } else {
-        console.error('[handlePurchase] Failed to get Stripe URL from server:', data.error || 'Unknown error');
-        setError(`Failed to initiate payment: ${data.error || 'Please try again.'}`);
+        // Original error log kept and enhanced:
+        console.error('[handlePurchase] Failed to initiate payment (API error or no URL):', data.error || 'No error message provided.');
+        setError('Failed to initiate payment. Please try again.');
       }
     } catch (err) {
+      // Original error log kept and enhanced:
       console.error('[handlePurchase] Error during fetch or processing:', err);
       setError('Error initiating payment: ' + err.message);
     }
   };
 
+  // Original useEffect for back navigation (potentially problematic, runs once on mount)
+  useEffect(() => {
+    // Original log kept:
+    console.log('[Single Run useEffect - Potential Back Nav] Navigation effect triggered:', {
+      currentPath: window.location.pathname,
+      previousPage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length,
+      search: window.location.search
+    });
+
+    const previousPage = sessionStorage.getItem('previousPage');
+    // <<< LOGGING >>>: Add check to see if previousPage matches current path before potentially navigating
+    console.log('[Single Run useEffect - Potential Back Nav] Checking previousPage:', previousPage, 'against current path:', window.location.pathname);
+    if (previousPage && previousPage !== window.location.pathname) { // Added check to prevent navigating to self
+      // Original log kept:
+      console.log('[Single Run useEffect - Potential Back Nav] Found previousPage in sessionStorage:', previousPage, '- Navigating now.');
+      // navigate(previousPage); // Original navigation logic - KEEP COMMENTED OUT FOR NOW based on previous analysis
+      // sessionStorage.removeItem('previousPage'); // Original removal logic
+    } else if (previousPage && previousPage === window.location.pathname) {
+        // <<< LOGGING >>>: Log if navigation is skipped because paths match
+        console.log('[Single Run useEffect - Potential Back Nav] previousPage matches current path. Navigation skipped by this effect.');
+        // sessionStorage.removeItem('previousPage'); // Decide if you should still remove it here
+    } else {
+        // <<< LOGGING >>>: Log if no previousPage found
+        console.log('[Single Run useEffect - Potential Back Nav] No previousPage found in sessionStorage. No navigation triggered by this effect.');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]); // Keep original dependency
+
+
+  // Original General route change listener (now redundant with enhanced log above, but kept for consistency with original)
+  useEffect(() => {
+    console.log('[General Route Change Listener - Redundant Log] Route changed:', { // Marked as potentially redundant
+      path: location.pathname,
+      previousPage: sessionStorage.getItem('previousPage'),
+      historyLength: window.history.length
+    });
+  }, [location]); // Keep original dependency
 
   const handleGoBackToHome = () => {
-    console.log('[handleGoBackToHome] Called. Resetting state.');
+    // Original log kept:
+    console.log('[handleGoBackToHome] called - Resetting state.'); // Enhanced log
     setUploadedImage(null);
     setConvertedImage(null);
     setPendingImage(null);
     setError('');
-    // Optionally navigate if not already on home
+    // <<< LOGGING >>>: Log if navigation occurs
     if (location.pathname !== '/') {
         console.log('[handleGoBackToHome] Navigating to /');
         navigate('/');
@@ -319,33 +376,40 @@ function AppContent() {
   };
 
   const handleRetryWithAnotherPicture = () => {
-    console.log('[handleRetryWithAnotherPicture] Called. Resetting state.');
+    // Original log kept:
+    console.log('[handleRetryWithAnotherPicture] called - Resetting state.'); // Enhanced log
     setUploadedImage(null);
     setConvertedImage(null);
     setPendingImage(null);
     setError('');
-     // Optionally navigate if not already on home
-     if (location.pathname !== '/') {
+    // <<< LOGGING >>>: Log if navigation occurs
+    if (location.pathname !== '/') {
         console.log('[handleRetryWithAnotherPicture] Navigating to /');
         navigate('/');
     }
   };
 
-  // Example pairs remain the same
+  // This function was in your original code but seems unused in the provided JSX. Kept for completeness.
+  const handleGoBack = () => {
+    // Original log kept:
+    console.log('[handleGoBack] Navigating back using navigate(-1)'); // Enhanced log
+    navigate(-1);
+  };
+
+  // Original examplePairs array
   const examplePairs = [
     { before: '/examples/input1.png', after: '/examples/output1.png' },
     { before: '/examples/input2.png', after: '/examples/output2.png' },
     { before: '/examples/input3.png', after: '/examples/output3.png' }
   ];
 
-  // JSX Structure (remains the same as your provided code)
+  // Original JSX Structure
   return (
     <div className="stone-bg" style={{ minHeight: '100vh', color: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
       <Routes>
         <Route path="/success" element={
           <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
-            {/* ... Success Page Content ... */}
-             <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF' }}>
+            <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF' }}>
               Payment Successful!
             </h1>
             <p style={{ fontSize: '20px', marginBottom: '30px', color: '#FFFFFF' }}>
@@ -354,7 +418,8 @@ function AppContent() {
             <button
               className="minecraft-btn minecraft-text"
               onClick={() => {
-                console.log('Convert a Photo button clicked (success page)');
+                // Original log kept:
+                console.log('[Button Click] Convert a Photo button clicked (success page)');
                 navigate('/');
               }}
               style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
@@ -365,7 +430,6 @@ function AppContent() {
         } />
         <Route path="/cancel" element={
           <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
-            {/* ... Cancel Page Content ... */}
             <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF' }}>
               Payment Cancelled
             </h1>
@@ -375,7 +439,8 @@ function AppContent() {
             <button
               className="minecraft-btn minecraft-text"
               onClick={() => {
-                console.log('Try Again button clicked (cancel page)');
+                // Original log kept:
+                console.log('[Button Click] Try Again button clicked (cancel page)');
                 navigate('/');
               }}
               style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
@@ -388,126 +453,183 @@ function AppContent() {
           <>
             {/* Hero Section */}
             <div className="grass-top" style={{ padding: '60px 20px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-              {/* ... Hero Content ... */}
               <h1 className="minecraft-text" style={{ fontSize: '48px', marginBottom: '30px', color: '#FFFFFF', lineHeight: '1.4', cursor: 'pointer' }} onClick={() => navigate('/')}>
                 Turn Your Photos Into Minecraft Art!
               </h1>
-               {/* ... Rest of your conditional rendering logic (convertedImage, pendingImage, upload form) ... */}
-               {/* Make sure buttons inside here also have console.log onClick */}
-               {convertedImage ? (
+              <p style={{ fontSize: '20px', marginBottom: '10px', color: '#FFFFFF', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                First conversion free! Additional conversions start at $5 for 10 photos.
+              </p>
+              <button
+                className="minecraft-btn minecraft-text"
+                onClick={() => {
+                  // Original log kept:
+                  console.log('[Button Click] View Pricing button clicked (header)');
+                  handlePurchase('starter'); // Directly initiate purchase
+                }}
+                style={{ backgroundColor: '#ff8c1a', padding: '8px 16px', fontSize: '14px', marginBottom: '20px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+              >
+                View Pricing
+              </button>
+              <p style={{ fontSize: '20px', marginBottom: '30px', color: '#FFFFFF', maxWidth: '600px', margin: '0 auto 30px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                You have {userCredits} credits remaining.
+              </p>
+
+              {convertedImage ? (
                 <div style={{ marginBottom: '40px' }}>
-                  {/* ... Converted Image Display ... */}
-                   <button
+                  <h2 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '20px', color: '#FFFFFF' }}>
+                    Your Minecraft Style Photo is Ready!
+                  </h2>
+                  {/* ... Original converted image display ... */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                     {/* ... img tags ... */}
+                  </div>
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', zIndex: 1000 }}>
+                    <button
                       className="minecraft-btn minecraft-text"
-                      onClick={handleGoBackToHome}
-                      style={{ backgroundColor: '#4CAF50', /*...*/ }}
+                      onClick={handleGoBackToHome} // Uses logged function
+                      style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
                     >
                       Go Back to Home
                     </button>
                     <button
                       className="minecraft-btn minecraft-text"
-                      onClick={handleRetryWithAnotherPicture}
-                       style={{ backgroundColor: '#ff8c1a', /*...*/ }}
+                      onClick={handleRetryWithAnotherPicture} // Uses logged function
+                      style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
                     >
                       Retry with Another Picture
                     </button>
-                     <button
+                  </div>
+                  <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '4px', display: 'inline-block' }}>
+                    <p style={{ fontSize: '16px', lineHeight: '1.6', textShadow: '1px 1px 0px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      Loved your Minecraft-style photo? Get more conversions with our pricing plans!
+                      <button
                         className="minecraft-btn minecraft-text"
                         onClick={() => {
-                          console.log('View Plans button clicked (result screen)');
+                          // Original log kept:
+                          console.log('[Button Click] View Plans button clicked (result screen)');
                           handlePurchase('starter'); // Directly initiate purchase
                         }}
-                        style={{ backgroundColor: '#ff8c1a', /*...*/ }}
+                        style={{ backgroundColor: '#ff8c1a', padding: '8px 16px', fontSize: '14px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
                       >
                         View Plans
                       </button>
+                    </p>
+                  </div>
                 </div>
               ) : pendingImage ? (
                 <div style={{ marginBottom: '40px' }}>
-                    {/* ... Pending Image Display ... */}
-                     <button
+                  <h2 className="minecraft-text" style={{ fontSize: '24px', marginBottom: '20px', color: '#FFFFFF' }}>
+                    Unlock Your Minecraft Style Photo!
+                  </h2>
+                  {/* ... Original pending image display ... */}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                    {/* ... img tags ... */}
+                  </div>
+                  <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                    <p style={{ fontSize: '16px', marginBottom: '10px', color: '#FFFFFF', textShadow: '1px 1px 0px rgba(0,0,0,0.5)' }}>
+                      Unlock this Minecraft-style image by purchasing credits!
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                    <button
                       className="minecraft-btn minecraft-text"
                       onClick={() => {
-                        console.log('Purchase Credits button clicked (preview screen)');
+                        // Original log kept:
+                        console.log('[Button Click] Purchase Credits button clicked (preview screen)');
                         handlePurchase('starter'); // Directly initiate purchase
                       }}
-                      style={{ backgroundColor: '#ff8c1a', /*...*/ }}
+                      style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
                     >
                       Purchase Credits
                     </button>
                     <button
                       className="minecraft-btn minecraft-text"
                       onClick={() => {
-                        console.log('Go Back button clicked (preview screen)');
+                        // Original log kept:
+                        console.log('[Button Click] Go Back button clicked (preview screen) - Resetting pending/uploaded.');
                         setPendingImage(null);
                         setUploadedImage(null);
                         setError('');
                       }}
-                      style={{ backgroundColor: '#4CAF50', /*...*/ }}
+                      style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
                     >
                       Go Back
                     </button>
+                  </div>
+                  {/* Removed error message display as per original code */}
                 </div>
               ) : (
                 <>
-                    <ImageUpload onImageSelect={handleImageSelect} />
-                    {isConverting && (
-                         <div style={{ marginTop: '20px', /*...*/ }}>
-                            <div className="minecraft-text breaking">Converting your photo...</div>
-                        </div>
-                    )}
-                    <ErrorMessage
-                        message={error}
-                        onClose={() => { console.log('Error message closed by user.'); setError(''); }}
-                    />
-                 </>
-                )}
-            </div>
+                  <ImageUpload onImageSelect={handleImageSelect} />
+                  {isConverting && (
+                    <div style={{ marginTop: '20px', padding: '20px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
+                        <div className="minecraft-text breaking">Converting your photo...</div>
+                    </div>
+                  )}
+                  <ErrorMessage
+                    message={error}
+                    onClose={() => { console.log('[Error Message Close]'); setError('');} } // Added log
+                  />
+                </>
+              )}
+            </div> {/* End Hero Section div */}
 
             {/* Only show examples if no image is being processed */}
             {!uploadedImage && !pendingImage && !isConverting && (
-                <>
-                  {/* How It Works Section */}
-                  <div className="dirt-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
-                     {/* ... How it works content ... */}
-                  </div>
+              <>
+                {/* How It Works */}
+                <div className="dirt-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
+                   {/* ... Original How It Works content ... */}
+                </div>
 
-                  {/* Examples Section */}
-                  <div className="stone-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
-                     {/* ... Examples content ... */}
-                      {examplePairs.map((pair, index) => (
-                        <div key={index} className="minecraft-box dirt-bg" style={{ /*...*/ }}>
-                            {/* ... Example Pair display ... */}
-                        </div>
-                     ))}
-                  </div>
+                {/* Examples Section */}
+                <div className="stone-bg" style={{ padding: '60px 20px', color: '#FFFFFF', textAlign: 'center' }}>
+                  {/* ... Original Examples content ... */}
+                </div>
 
-                  {/* Pricing Section */}
-                  <div id="pricing-section" className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
-                    {/* ... Pricing Content ... */}
-                     <button
-                        className="minecraft-btn minecraft-text"
-                        onClick={() => { console.log('Pricing: Starter Pack clicked'); handlePurchase('starter'); }}
-                        style={{ backgroundColor: '#ff4d4d', /*...*/ }}
-                      >
-                        Get Started
-                      </button>
-                       <button
-                        className="minecraft-btn minecraft-text"
-                        onClick={() => { console.log('Pricing: Value Pack clicked'); handlePurchase('value'); }}
-                        style={{ backgroundColor: '#ff8c1a', /*...*/ }}
-                      >
-                        Best Value!
-                      </button>
-                       <button
-                        className="minecraft-btn minecraft-text"
-                        onClick={() => { console.log('Pricing: Family Pack clicked'); handlePurchase('family'); }}
-                        style={{ backgroundColor: '#4CAF50', /*...*/ }}
-                      >
-                        Get Started
-                      </button>
+                {/* Pricing Section */}
+                <div id="pricing-section" className="grass-top" style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <h2 className="minecraft-text" style={{ fontSize: '36px', marginBottom: '40px', color: '#FFFFFF', lineHeight: '1.4' }}>
+                    Simple Pricing
+                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', flexWrap: 'wrap', maxWidth: '1200px', margin: '0 auto' }}>
+                     {/* Starter Pack */}
+                     <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px' }}>
+                         {/* ... content ... */}
+                        <button
+                          className="minecraft-btn minecraft-text"
+                          onClick={() => { console.log('[Button Click] Pricing: Starter Pack Get Started'); handlePurchase('starter'); }} // Added log
+                          style={{ backgroundColor: '#ff4d4d', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                        >
+                          Get Started
+                        </button>
+                     </div>
+                     {/* Value Pack */}
+                     <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px', position: 'relative', transform: 'scale(1.05)' }}>
+                         {/* ... content ... */}
+                        <button
+                          className="minecraft-btn minecraft-text"
+                          onClick={() => { console.log('[Button Click] Pricing: Value Pack Best Value!'); handlePurchase('value'); }} // Added log
+                          style={{ backgroundColor: '#ff8c1a', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                        >
+                          Best Value!
+                        </button>
+                     </div>
+                     {/* Family Pack */}
+                     <div className="minecraft-box stone-bg" style={{ flex: '1', minWidth: '250px', maxWidth: '300px', padding: '30px' }}>
+                          {/* ... content ... */}
+                         <button
+                           className="minecraft-btn minecraft-text"
+                           onClick={() => { console.log('[Button Click] Pricing: Family Pack Get Started'); handlePurchase('family'); }} // Added log
+                           style={{ backgroundColor: '#4CAF50', padding: '10px 20px', fontSize: '16px', zIndex: 1000, cursor: 'pointer', pointerEvents: 'auto !important' }}
+                         >
+                           Get Started
+                         </button>
+                     </div>
                   </div>
-                </>
+                  {/* ... Gift message ... */}
+                </div>
+              </>
             )}
 
             {/* Footer */}
@@ -523,9 +645,10 @@ function AppContent() {
   );
 }
 
-// Main App component wrapping AppContent with Router
+// Original App wrapper component
 function App() {
-  console.log('[App Wrapper] Rendering Router.'); // Log when the main App component renders
+  // <<< LOGGING >>>: Log when the main App wrapper renders
+  console.log('[App Wrapper] Rendering Router.');
   return (
     <Router>
       <AppContent />
